@@ -1,32 +1,51 @@
 import React from "react";
 import { Text, View, Picker, Button } from "react-native";
+import firebase from "firebase";
+import "@firebase/firestore";
 
-export default function Form() {
+export default function Form({ docRef }) {
   const [firstOption, setFirstOption] = React.useState("");
   const [secondOption, setSecondOption] = React.useState("");
   const [submitted, setSubmitted] = React.useState(false);
+  const [message, setMessage] = React.useState("");
+
   const submit = () => {
     console.log({ firstOption, secondOption });
     if (!submitted) setSubmitted(true);
-    if ((firstOption !== "") & (secondOption !== "")) {
-      //   firebase
-      // .firestore()
-      // .collection("registrations")
-      //     .doc(`user-${userId}`)
-      // firebase.store().collection("username").set({
-      //   selection: dropdownSelection,
-      //   loc: location,
-      //   selection: dropdownSelection,
-      // }).then(() =>
-      // alert(`Submitted ${firstOption} and ${secondOption} :)`);
-      // ).catch((err) =>
-      // alert(`Failed due to ${err} :(`);
-      // )
-      alert("sent!");
-    }
+    if (firstOption === "" || secondOption === "") return;
+
+    const newChoices = { firstOption, secondOption, time: new Date() };
+
+    firebase
+      .firestore()
+      .runTransaction((transaction) => {
+        return transaction.get(docRef).then((doc) => {
+          if (!doc.exists) {
+            transaction.set(docRef, { choices: [newChoices] });
+          } else {
+            const previousChoices = doc.data()?.choices || [];
+            transaction.update(docRef, {
+              choices: [newChoices, ...previousChoices],
+            });
+          }
+        });
+      })
+      .then(() => setMessage(`Submitted ${firstOption} and ${secondOption} :)`))
+      .catch((err) => setMessage(`Failed due to ${err} :(`));
   };
+
   return (
-    <View>
+    <View
+      style={{
+        flex: 0.3,
+        backgroundColor: "#aaeeff",
+        padding: 30,
+        width: "100%",
+        justifyContent: "space-around",
+      }}
+    >
+      <Text style={{ fontSize: 20, fontWeight: "bold" }}>New Choice</Text>
+
       <Text style={{ color: "red" }}>
         {submitted && firstOption === "" && "You must select a First Option."}
       </Text>
@@ -56,6 +75,7 @@ export default function Form() {
       </Picker>
 
       <Button title="Submit" onPress={submit} />
+      <Text> {message} </Text>
     </View>
   );
 }

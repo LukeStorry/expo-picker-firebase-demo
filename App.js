@@ -1,11 +1,12 @@
 import React from "react";
-import { StyleSheet, View } from "react-native";
+import { View, StyleSheet, Button, Text } from "react-native";
+import Login from "./components/Login";
+import Form from "./components/Form";
+import ChoiceList from "./components/ChoiceList";
 import * as firebase from "firebase";
 
-import Form from "./components/Form";
-import Login from "./components/Login";
-
 export default function App() {
+  const [user, setUser] = React.useState(null);
   const firebaseConfig = {
     apiKey: "AIzaSyApKqbh57QOX2p5ZkzTP-SGNbo7IMQ8W3I",
     authDomain: "expo-picker-firebase-demo.firebaseapp.com",
@@ -19,20 +20,32 @@ export default function App() {
 
   if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
 
-  console.log(firebase.auth);
+  firebase.auth().onAuthStateChanged(setUser);
+  if (!user)
+    return (
+      <View style={s.root}>
+        <Login />
+      </View>
+    );
 
+  const userDoc = firebase.firestore().collection("users").doc(user.email);
 
   return (
-    <View style={styles.container}>
-      <Login />
+    <View style={s.root}>
+      <View style={{ flexDirection: "row", padding: 20 }}>
+        <Text style={{ marginRight: 30 }}>{`Logged in as: ${user.email}`}</Text>
+        <Button title="Sign Out" onPress={() => firebase.auth().signOut()} />
+      </View>
+      <Form docRef={userDoc} />
+      <ChoiceList docRef={userDoc} />
     </View>
   );
 }
-export const styles = StyleSheet.create({
-  container: {
+
+const s = StyleSheet.create({
+  root: {
     flex: 1,
-    backgroundColor: "#fff",
+    justifyContent: "space-around",
     alignItems: "center",
-    justifyContent: "center",
   },
 });
